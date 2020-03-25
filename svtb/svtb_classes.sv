@@ -1,7 +1,7 @@
 class DUTdata #( parameter DATA_WIDTH = 16, OFFSET_WIDTH = 10 );
 
     rand bit [DATA_WIDTH - 1:0] data_content;
-    rand bit [OFFSET_WIDTH - 1:0] data_offset; // FIXME
+    randc bit [OFFSET_WIDTH - 1:0] data_offset;
     bit sof;
     bit eof;
 
@@ -21,7 +21,21 @@ class UnOrdDataAgent #( parameter DW = 32, AW = 10 );
     endfunction : new
 
     task run();
+        bit [AW - 1:0] cnt;
+        DUTdata#(.DATA_WIDTH(DW),.OFFSET_WIDTH(AW)) data_element;
+        cnt = '0;
 
+        repeat ( 4096 )
+        begin
+            data_element = new;
+            assert (data_element.randomize());
+            data_element.sof = cnt == 0 ? 1'b1 : 1'b0;
+            data_element.eof = cnt == (1<<AW) - 1 ? 1'b1 : 1'b0;
+
+            mbxSB.put(data_element);
+            mbxIF1.put(data_element);
+            cnt++;
+        end
     endtask : run
 
 endclass : UnOrdDataAgent
@@ -39,6 +53,19 @@ class IF1xactor #( parameter DW = 32, AW = 10 );
     endfunction
 
     task run();
+        DUTdata#(.DATA_WIDTH(DW), .OFFSET_WIDTH(AW)) data_element;
+
+        forever begin
+            mbxIF1.get(data_element);
+
+            sig_h.cb.if1_dut_vld <= 1'b1;
+            sig_h.cb.if1_dut_data <= data_element.data_content;
+            sig_h.cb.if1_dut_offset <= data_element.data_offset;
+
+            wait( sig_h.cb.dut_if1_rdy ) ;
+            @( sig_h.cb )
+            sig_h.cb.if1_dut_vld <= 1'b0;
+        end
 
     endtask : run
 
@@ -50,6 +77,7 @@ class IF2xactor #( parameter DW = 32, AW = 10 );
 
     mailbox mbxIF2;
     virtual reorder_if #(.DW(DW), .AW(AW) ).TB sig_h;
+    bit [DW - 1:0] data_word;
 
     function new( mailbox mbxIF2, virtual reorder_if#(.DW(DW), .AW(AW)).TB s );
         this.mbxIF2 = mbxIF2;
@@ -57,6 +85,13 @@ class IF2xactor #( parameter DW = 32, AW = 10 );
     endfunction
 
     task run();
+        forever begin
+            sig_h.cb.if2_dut_rdy <= 1'b1;
+            wait ( sig_h.cb.dut_if2_vld && sig_h.cb.if2_dut_rdy ) ;
+            data_word = sig_h.cb.dut_if2_data;
+            mbxIF2.put(data_word);
+            @( sig_h.cb );
+        end
 
     endtask : run
 

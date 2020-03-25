@@ -29,7 +29,7 @@ interface reorder_if
         output rst_n;
         output if1_dut_data, if1_dut_offset, if1_dut_vld;
         input dut_if1_rdy;
-        output if2_dut_rdy;
+        inout if2_dut_rdy;
         input dut_if2_data, dut_if2_vld;
     endclocking : cb
 
@@ -64,6 +64,19 @@ module svtb;
         clk = 1'b0;
         forever #5 clk = ~clk;
     end
+
+    // connect DUT
+    reorder_top #(.DW(DATA_WIDTH), .AW(OFFSET_WIDTH)) u_reorder_top
+                                                      (
+                                                          .clk( clk ),
+                                                          .rst_n(u_reorder_if.rst_n),
+                                                          .if1_dut_data(u_reorder_if.if1_dut_data),
+                                                          .if1_dut_offset(u_reorder_if.if1_dut_offset),
+                                                          .if1_dut_vld(u_reorder_if.if1_dut_vld),
+                                                          .dut_if1_rdy(u_reorder_if.dut_if1_rdy),
+                                                          .dut_if2_data(u_reorder_if.dut_if2_data),
+                                                          .if2_dut_rdy(u_reorder_if.if2_dut_rdy)
+                                                      );
 
 endmodule : svtb
 
