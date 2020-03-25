@@ -25,6 +25,10 @@ module reorder_top
     logic mem1_full;
     logic mem0_empty;
     logic mem1_empty;
+    logic full0;
+    logic full1;
+    logic empty0;
+    logic empty1;
 
     logic if1_sample;
 
@@ -47,6 +51,12 @@ module reorder_top
     logic mem0wr_st_decode;
     logic mem1wr_st_decode;
 
+    logic [DW - 1:0 ] data_out0;
+    logic [DW - 1:0 ] data_out1;
+
+    logic vld0;
+    logic vld1;
+
     // ======================================================================
     // Combinational Logic
     assign mem0_full = full0;
@@ -59,7 +69,7 @@ module reorder_top
 
     // dut is ready to accept data from interface 1 when either mem0 or mem1
     // are not locked i.e., in one of the memory write states
-    assign dut_if1_rdy = mem0wr_state_decode || mem1wr_state_decode;
+    assign dut_if1_rdy = mem0wr_st_decode || mem1wr_st_decode;
 
     // writes to mem0 active
     assign push0 = mem0wr_st_decode ? if1_sample : 1'b0;
@@ -94,7 +104,7 @@ module reorder_top
         else if ( mem0wr_st_decode && mem0_full )
             mem0_lock <= 1'b1;
     
-        else if ( mem0rd_st_decode && mmem0_empty )
+        else if ( mem0rd_st_decode && mem0_empty )
             mem0_lock <= 1'b0;
 
     // Register:  mem1_lock
@@ -105,7 +115,7 @@ module reorder_top
         else if ( mem1wr_st_decode && mem1_full )
             mem1_lock <= 1'b1;
     
-        else if ( mem1rd_st_decode && mmem1_empty )
+        else if ( mem1rd_st_decode && mem1_empty )
             mem1_lock <= 1'b0;
 
     // ======================================================================
@@ -131,7 +141,7 @@ module reorder_top
                                            .pop( pop0 ),
                                            .vld( vld0 ),
                                            .data_out( data_out0 ),
-                                           .emtpy( emtpy0 )
+                                           .empty( empty0 )
                                        );
 
     // Module:  mem1
@@ -148,7 +158,7 @@ module reorder_top
                                            .pop( pop1 ),
                                            .vld( vld1 ),
                                            .data_out( data_out1 ),
-                                           .emtpy( emtpy1 )
+                                           .empty( empty1 )
                                        );
 
 endmodule : reorder_top

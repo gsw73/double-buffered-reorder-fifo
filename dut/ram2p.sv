@@ -22,11 +22,11 @@ logic [ DW - 1:0 ] mem [ DEPTH ];
 // =======================================================================
 // Registered Logic
 
-always_ff @( posedge wclk )
+always_ff @( posedge clk )
     if ( wen )
       mem[ wr_addr ] <= wr_data;
 
-always_ff @( posedge rclk )
+always_ff @( posedge clk )
   	rd_data <= mem[ rd_addr ];
 
 endmodule : ram2p

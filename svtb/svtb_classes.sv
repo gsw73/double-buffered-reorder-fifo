@@ -38,9 +38,9 @@ class IF1xactor #( parameter DW = 32, AW = 10 );
         sig_h = s;
     endfunction
 
-    function run();
+    task run();
 
-    endfunction : run
+    endtask : run
 
 endclass : IF1xactor
 
@@ -51,14 +51,14 @@ class IF2xactor #( parameter DW = 32, AW = 10 );
     mailbox mbxIF2;
     virtual reorder_if #(.DW(DW), .AW(AW) ).TB sig_h;
 
-    function new( mailbox mbxIF1, virtual reorder_if#(.DW(DW), .AW(AW)).TB s );
-        this.mbxIF1 = mbxIF1;
+    function new( mailbox mbxIF2, virtual reorder_if#(.DW(DW), .AW(AW)).TB s );
+        this.mbxIF2 = mbxIF2;
         sig_h = s;
     endfunction
 
-    function run();
+    task run();
 
-    endfunction : run
+    endtask : run
 
 endclass : IF2xactor
 
@@ -83,7 +83,7 @@ endclass : ScoreBoard
 
 // =======================================================================
 
-class SVTBEnv #( parameter DW = 41, AW = 10 );
+class SVTBEnv #( parameter DW = 41, parameter AW = 10 );
 
     IF1xactor#(.DW(DW), .AW(AW)) if1x;
     IF2xactor#(.DW(DW), .AW(AW)) if2x;
@@ -93,7 +93,6 @@ class SVTBEnv #( parameter DW = 41, AW = 10 );
     mailbox mbxSB;
     mailbox mbxIF2;
     mailbox mbxIF1;
-
     virtual reorder_if#(.DW(DW), .AW(AW)).TB sig_h;
 
     function new( virtual reorder_if#(.DW(DW), .AW(AW)).TB s );
@@ -118,4 +117,4 @@ class SVTBEnv #( parameter DW = 41, AW = 10 );
         join_none
     endtask
 
-endclass : SBTBEnv
+endclass : SVTBEnv

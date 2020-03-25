@@ -70,9 +70,9 @@ endmodule : svtb
 // ==========================================================================
 // Main Program
 
-program automatic main_prg #( parameter DW = 12, AW = 10 )( reorder_if.TB i_f );
-    virtual reorder_if #(.DW(DW), .AW(AW)).TB sig_h = i_f;
-    SVTBEnv#( .DW(DW), .AW(AW) ) env;
+program automatic main_prg #( parameter DW = 12, AW = 10 )( reorder_if i_f );
+    virtual reorder_if #(.DW(DW), .AW(AW)).TB sig_h = i_f.TB;
+    SVTBEnv#(.DW(DW), .AW(AW)) env;
 
     initial
     begin

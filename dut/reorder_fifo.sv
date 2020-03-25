@@ -30,6 +30,8 @@ module reorder_fifo
     logic [AW - 1:0] rd_addr_q;
     logic [AW - 1:0] rd_addr;
     logic ren;
+    logic [CW - 1:0] cnt;
+    logic [DW - 1:0] rd_data;
 
     // ======================================================================
     // Combinational Logic
@@ -45,6 +47,8 @@ module reorder_fifo
 
     // by definition, reorder won't do this because it's tracking empty
     assign ren = pop && !empty;
+
+    assign data_out = rd_data;
 
     // ======================================================================
     // Registered Logic
