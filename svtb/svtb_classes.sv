@@ -1,7 +1,21 @@
+class RandcRange;
+
+    randc bit [15:0] value;
+    int max_value;
+    
+    function new( int max_value = 10 );
+        this.max_value = max_value;
+    endfunction
+    
+    constraint c_max_value {value < max_value;}
+
+endclass : RandcRange
+
+
 class DUTdata #( parameter DATA_WIDTH = 16, OFFSET_WIDTH = 10 );
 
     rand bit [DATA_WIDTH - 1:0] data_content;
-    randc bit [OFFSET_WIDTH - 1:0] data_offset;
+    bit [OFFSET_WIDTH - 1:0] data_offset;
     bit sof;
     bit eof;
 
@@ -11,9 +25,13 @@ endclass : DUTdata
 
 class UnOrdDataAgent #( parameter DW = 32, AW = 10 );
 
+    localparam NUM_FULL_PKTS = 2;
+
     mailbox mbxSB;
     mailbox mbxIF1;
     DUTdata d;
+    RandcRange rr = new( 1 << AW );
+    int num_elements = NUM_FULL_PKTS * (1 << AW);
 
     function new ( mailbox mbxSB, mailbox mbxIF1 );
         this.mbxSB = mbxSB;
@@ -25,12 +43,15 @@ class UnOrdDataAgent #( parameter DW = 32, AW = 10 );
         DUTdata#(.DATA_WIDTH(DW),.OFFSET_WIDTH(AW)) data_element;
         cnt = '0;
 
-        repeat ( 4096 )
+        repeat ( num_elements )
         begin
             data_element = new;
             assert (data_element.randomize());
+            assert (rr.randomize());
             data_element.sof = cnt == 0 ? 1'b1 : 1'b0;
             data_element.eof = cnt == (1<<AW) - 1 ? 1'b1 : 1'b0;
+            data_element.data_offset = rr.value[AW - 1:0];
+            $display( "sof=%b, eof=%b, os=%d, d=%h", data_element.sof, data_element.eof, data_element.data_offset, data_element.data_content );
 
             mbxSB.put(data_element);
             mbxIF1.put(data_element);
@@ -62,8 +83,8 @@ class IF1xactor #( parameter DW = 32, AW = 10 );
             sig_h.cb.if1_dut_data <= data_element.data_content;
             sig_h.cb.if1_dut_offset <= data_element.data_offset;
 
+            @( sig_h.cb ) ;
             wait( sig_h.cb.dut_if1_rdy ) ;
-            @( sig_h.cb )
             sig_h.cb.if1_dut_vld <= 1'b0;
         end
 
@@ -103,7 +124,6 @@ class ScoreBoard #( parameter DW = 32, AW = 10 );
 
     mailbox mbxSB;
     mailbox mbxIF2;
-    DUTdata d;
 
     function new ( mailbox mbxSB, mailbox mbxIF2 );
         this.mbxSB = mbxSB;
@@ -111,6 +131,46 @@ class ScoreBoard #( parameter DW = 32, AW = 10 );
     endfunction : new
 
     task run();
+        DUTdata#(.DATA_WIDTH(DW), .OFFSET_WIDTH(AW)) d_golden[ 2**AW ];
+        bit [DW - 1:0] d_dut[ 2**AW ];
+        DUTdata#(.DATA_WIDTH(DW), .OFFSET_WIDTH(AW)) data_element;
+        bit [DW - 1:0] data_content, data_golden, data_dut;
+        int pkt_num = 0;
+        int error_found = 0;
+        int data_el;
+
+        forever begin
+            // collect full packet from SB
+            for ( int i = 0; i < 2**AW; i++ ) begin
+                mbxSB.get(data_element);
+                d_golden[ data_element.data_offset ] = data_element;
+            end
+    
+            // collect full packet from DUT
+            for ( int i = 0; i < 2**AW; i++ ) begin
+                mbxIF2.get( data_content );
+                d_dut[ i ] = data_content;
+            end
+    
+            // compare
+            for ( int i = 0; i < 2**AW; i++ ) begin
+                $display( "PKT%02d, EL%04d:  DGO=%h, DUT=%h", pkt_num, i, d_golden[ i ].data_content, d_dut[ i ] );
+                if ( !error_found ) begin
+                    if ( d_golden[i].data_content != d_dut[i] ) begin
+                        error_found = 1;
+                        data_golden = d_golden[i].data_content;
+                        data_dut = d_dut[i];
+                        data_el = i;
+                    end
+                end
+            end
+
+            if ( error_found ) begin
+                $display( "ERROR!  PKT%02d, EL%04d: DGO=%h, DUT=%h", pkt_num, data_el, data_golden, data_dut );
+                $finish();
+            end
+            pkt_num++;
+        end
 
     endtask : run
 

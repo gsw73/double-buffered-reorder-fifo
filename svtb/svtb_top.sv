@@ -42,7 +42,7 @@ endinterface : reorder_if
 
 module svtb;
     parameter DATA_WIDTH = 16;
-    parameter OFFSET_WIDTH = 8;
+    parameter OFFSET_WIDTH = 4;
 
     logic clk;
 
@@ -75,6 +75,7 @@ module svtb;
                                                           .if1_dut_vld(u_reorder_if.if1_dut_vld),
                                                           .dut_if1_rdy(u_reorder_if.dut_if1_rdy),
                                                           .dut_if2_data(u_reorder_if.dut_if2_data),
+                                                          .dut_if2_vld(u_reorder_if.dut_if2_vld),
                                                           .if2_dut_rdy(u_reorder_if.if2_dut_rdy)
                                                       );
 
@@ -97,7 +98,7 @@ program automatic main_prg #( parameter DW = 12, AW = 10 )( reorder_if i_f );
 
         env.run();
 
-        repeat( 2500 ) @( sig_h.cb );
+        repeat( 100 ) @( sig_h.cb );
     end
 
 endprogram : main_prg

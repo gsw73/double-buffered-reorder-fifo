@@ -68,8 +68,8 @@ module reorder_top
     assign if1_sample = if1_dut_vld && dut_if1_rdy;
 
     // dut is ready to accept data from interface 1 when either mem0 or mem1
-    // are not locked i.e., in one of the memory write states
-    assign dut_if1_rdy = mem0wr_st_decode || mem1wr_st_decode;
+    // are not full i.e., in one of the memory write states
+    assign dut_if1_rdy = mem0wr_st_decode && !mem0_full || mem1wr_st_decode && !mem1_full;
 
     // writes to mem0 active
     assign push0 = mem0wr_st_decode ? if1_sample : 1'b0;
@@ -82,12 +82,15 @@ module reorder_top
     assign data_offset1 = mem1wr_st_decode ? if1_dut_offset : '0;
 
     // mux for interface 2 depends on rd fsm
-    assign dut_if2_data = mem0rd_st_decode ? data_out0 : data_out1;
-    assign dut_if2_vld = mem0rd_st_decode ? vld0 : vld1;
+    assign dut_if2_data = mem0rd_st_decode ? data_out0 :
+                          mem1rd_st_decode ? data_out1 : 'd0;
+    assign dut_if2_vld = mem0rd_st_decode ? vld0 :
+                         mem1rd_st_decode ? vld1 : 1'b0;
 
-    // both memories always see same if2 ready as "pop"
-    assign pop0 = if2_dut_rdy;
-    assign pop1 = if2_dut_rdy;
+    // both memories always see same if2 ready as "pop", but qualified with
+    // FSM rd signal for given memory
+    assign pop0 = if2_dut_rdy && mem0rd_st_decode;
+    assign pop1 = if2_dut_rdy && mem1rd_st_decode;
 
     // ======================================================================
     // Registered Logic
@@ -125,7 +128,7 @@ module reorder_top
     rd_fsm u_rd_fsm (.*);
     
     // Module:  wr_fsm
-    wr_fsm u_rs_fsm (.*);
+    wr_fsm u_wr_fsm (.*);
 
     // Module:  mem0
     reorder_fifo #( .DW(DW), .AW(AW) ) u_mem0

@@ -50,6 +50,8 @@ module reorder_fifo
 
     assign data_out = rd_data;
 
+    assign vld = ~empty;
+
     // ======================================================================
     // Registered Logic
 
