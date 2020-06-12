@@ -20,6 +20,7 @@ module wr_fsm
                               MEM1WR = 3'b010,
                               WRWAIT = 3'b100} wr_state_t;
     wr_state_t wr_state;
+    logic wrwait_st_decode;
 
     // ======================================================================
     // Combinational Logic

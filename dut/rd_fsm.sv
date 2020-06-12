@@ -20,6 +20,7 @@ module rd_fsm
                               MEM1RD = 3'b010,
                               RDWAIT = 3'b100} rd_state_t;
     rd_state_t rd_state;
+    logic rdwait_st_decode;
 
     // ======================================================================
     // Combinational Logic

@@ -9,6 +9,8 @@ interface reorder_if
     (
         input bit clk
     );
+    timeunit 1ns;
+    timeprecision 100ps;
 
     logic rst_n = 0;
 
@@ -23,17 +25,15 @@ interface reorder_if
     logic dut_if2_vld;
     logic if2_dut_rdy = 0;
 
-    clocking cb @( posedge clk );
-        default output #1;
-
-        output rst_n;
-        output if1_dut_data, if1_dut_offset, if1_dut_vld;
+    default clocking cb @(posedge clk);
+        output #1 rst_n;
+        output #1 if1_dut_data, if1_dut_offset, if1_dut_vld;
         input dut_if1_rdy;
         inout if2_dut_rdy;
         input dut_if2_data, dut_if2_vld;
     endclocking : cb
 
-    modport TB ( clocking cb );
+    modport TB (clocking cb);
 
 endinterface : reorder_if
 
@@ -41,6 +41,8 @@ endinterface : reorder_if
 // Test Bench Top
 
 module svtb;
+    timeunit 1ns;
+    timeprecision 100ps;
     parameter DATA_WIDTH = 16;
     parameter OFFSET_WIDTH = 4;
 
@@ -50,7 +52,7 @@ module svtb;
     reorder_if #( .DW( DATA_WIDTH ), .AW( OFFSET_WIDTH ) ) u_reorder_if( clk );
 
     // instantiate the main test
-    main_prg #(.DW( DATA_WIDTH ), .AW( OFFSET_WIDTH) ) u_main_prg( .i_f( u_reorder_if ) );
+    main_prg #(.DW( DATA_WIDTH ), .AW( OFFSET_WIDTH) ) u_main_prg( .sig_h(u_reorder_if.TB) );
 
     initial begin
         $dumpfile( "dump.vcd" );
@@ -84,8 +86,10 @@ endmodule : svtb
 // ==========================================================================
 // Main Program
 
-program automatic main_prg #( parameter DW = 12, AW = 10 )( reorder_if i_f );
-    virtual reorder_if #(.DW(DW), .AW(AW)).TB sig_h = i_f.TB;
+program automatic main_prg
+    import dbrf_sim_pkg::*;
+    #( parameter DW = 12, AW = 10 )( reorder_if.TB sig_h );
+
     SVTBEnv#(.DW(DW), .AW(AW)) env;
 
     initial
@@ -94,11 +98,13 @@ program automatic main_prg #( parameter DW = 12, AW = 10 )( reorder_if i_f );
 
         sig_h.cb.rst_n <= 1'b0;
         #50 sig_h.cb.rst_n <= 1'b1;
-        repeat( 10 ) @( sig_h.cb );
+        repeat( 10 ) @(sig_h.cb);
 
         env.run();
 
-        repeat( 100 ) @( sig_h.cb );
+        repeat( 100 ) @(sig_h.cb);
     end
+
+
 
 endprogram : main_prg
