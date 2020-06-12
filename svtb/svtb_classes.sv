@@ -32,7 +32,7 @@ package dbrf_sim_pkg;
 
     class UnOrdDataAgent#(parameter DW=32, AW=10);
 
-        localparam NUM_FULL_PKTS=2;
+        localparam NUM_FULL_PKTS=4;
 
         mailbox mbxSB;
         mailbox mbxIF1;
@@ -85,6 +85,7 @@ package dbrf_sim_pkg;
 
             forever begin
                 mbxIF1.get(data_element);
+                repeat($urandom() & 3) @(sig_h.cb);
 
                 sig_h.cb.if1_dut_vld <= 1'b1;
                 sig_h.cb.if1_dut_data <= data_element.data_content;
@@ -93,6 +94,8 @@ package dbrf_sim_pkg;
                 @(sig_h.cb);
                 wait (sig_h.cb.dut_if1_rdy);
                 sig_h.cb.if1_dut_vld <= 1'b0;
+                sig_h.cb.if1_dut_data <= '0;
+                sig_h.cb.if1_dut_offset <= '0;
             end
 
         endtask : run
@@ -113,8 +116,16 @@ package dbrf_sim_pkg;
         endfunction
 
         task run();
+            fork
+                forever begin
+                    repeat($urandom & 3) @(sig_h.cb);
+                    sig_h.cb.if2_dut_rdy <= 1'b1;
+                    repeat($urandom & 3) @(sig_h.cb);
+                    sig_h.cb.if2_dut_rdy <= 1'b0;
+                end
+            join_none
+
             forever begin
-                sig_h.cb.if2_dut_rdy <= 1'b1;
                 wait (sig_h.cb.dut_if2_vld && sig_h.cb.if2_dut_rdy);
                 data_word = sig_h.cb.dut_if2_data;
                 mbxIF2.put(data_word);

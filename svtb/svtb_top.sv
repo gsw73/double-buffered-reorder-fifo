@@ -102,9 +102,6 @@ program automatic main_prg
 
         env.run();
 
-        repeat( 100 ) @(sig_h.cb);
+        repeat( 500 ) @(sig_h.cb);
     end
-
-
-
 endprogram : main_prg
